@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: portainer
+  labels:
+    app.podman.io/name: portainer
+spec:
+  accessModes:
+    - ReadWriteOnce
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: portainer
+  labels:
+    app.podman.io/name: portainer
+spec:
+  containers:
+    - name: portainer
+      image: docker.io/portainer/portainer-ce:2.20.3
+      ports:
+        - containerPort: 9000
+          hostPort: 9000
+      volumeMounts:
+        - name: portainer
+          mountPath: /data
+        - name: podman-socket
+          mountPath: /var/run/docker.sock
+  volumes:
+    - name: portainer
+      persistentVolumeClaim:
+        claimName: portainer
+    - name: podman-socket
+      hostPath:
+        path: /run/user/1000/podman/podman.sock
