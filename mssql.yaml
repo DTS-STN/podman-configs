@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mssql
+  labels:
+    app.podman.io/name: mssql
+spec:
+  accessModes:
+    - ReadWriteOnce
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mssql
+  labels:
+    app.podman.io/name: mssql
+stringData:
+  SA_PASSWORD: p@ssword1
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mssql
+  labels:
+    app.podman.io/name: mssql
+spec:
+  containers:
+    - name: mssql
+      image: mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04
+      env:
+        - name: ACCEPT_EULA
+          value: Y
+        - name: MSSQL_PID
+          value: Express
+      envFrom:
+        - secretRef:
+            name: mssql
+      ports:
+        - containerPort: 1433
+          hostPort: 1433
+      volumeMounts:
+        - name: mssql
+          mountPath: /var/opt/mssql
+  volumes:
+    - name: mssql
+      persistentVolumeClaim:
+        claimName: mssql
