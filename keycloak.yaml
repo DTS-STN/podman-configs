@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak
+  labels:
+    app.podman.io/name: keycloak
+spec:
+  accessModes:
+    - ReadWriteOnce
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak
+  labels:
+    app.podman.io/name: keycloak
+stringData:
+  KEYCLOAK_ADMIN_PASSWORD: password
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: keycloak
+  labels:
+    app.podman.io/name: keycloak
+spec:
+  containers:
+    - name: keycloak
+      image: quay.io/keycloak/keycloak:25.0
+      args: [start-dev]
+      env:
+        - name: KEYCLOAK_ADMIN
+          value: admin
+      envFrom:
+        - secretRef:
+            name: keycloak
+      ports:
+        - containerPort: 8080
+          hostPort: 8080
+      volumeMounts:
+        - name: keycloak
+          mountPath: /opt/keycloak/data
+  volumes:
+    - name: keycloak
+      persistentVolumeClaim:
+        claimName: keycloak
