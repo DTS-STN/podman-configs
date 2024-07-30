@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres
+  labels:
+    app.podman.io/name: postgres
+spec:
+  accessModes:
+    - ReadWriteOnce
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres
+  labels:
+    app.podman.io/name: postgres
+stringData:
+  POSTGRES_PASSWORD: password
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: postgres
+  labels:
+    app.podman.io/name: postgres
+spec:
+  containers:
+    - name: postgres
+      image: docker.io/library/postgres:16.3
+      envFrom:
+        - secretRef:
+            name: postgres
+      ports:
+        - containerPort: 5432
+          hostPort: 5432
+      volumeMounts:
+        - name: postgres
+          mountPath: /var/lib/postgresql/data
+  volumes:
+    - name: postgres
+      persistentVolumeClaim:
+        claimName: postgres
