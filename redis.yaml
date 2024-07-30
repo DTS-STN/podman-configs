@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis
+  labels:
+    app.podman.io/name: redis
+spec:
+  accessModes:
+    - ReadWriteOnce
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis
+  labels:
+    app.podman.io/name: redis
+stringData:
+  REDIS_PASSWORD: password
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+  labels:
+    app.podman.io/name: redis
+spec:
+  containers:
+    - name: redis
+      image: docker.io/library/redis:7.2
+      args:
+        - --requirepass $(REDIS_PASSWORD)
+      envFrom:
+        - secretRef:
+            name: redis
+      ports:
+        - containerPort: 6379
+          hostPort: 6379
+      volumeMounts:
+        - name: redis
+          mountPath: /data
+  volumes:
+    - name: redis
+      persistentVolumeClaim:
+        claimName: redis
