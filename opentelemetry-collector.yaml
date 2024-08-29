@@ -1,0 +1,24 @@
+# The OpenTelemetry Collector offers a vendor-agnostic implementation of how to receive, process and export telemetry data.
+# To view telemetry data: http://localhost:55679/debug/tracez
+# For more information, see: https://opentelemetry.io/docs/collector/
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: opentelemetry-collector
+  labels:
+    app.podman.io/name: opentelemetry-collector
+spec:
+  containers:
+    - name: opentelemetry-collector
+      image: docker.io/otel/opentelemetry-collector-contrib
+      ports:
+        - name: otel-grpc
+          containerPort: 4317
+          hostPort: 4317
+        - name: otel-http
+          containerPort: 4318
+          hostPort: 4318
+        - name: zpages
+          containerPort: 55679
+          hostPort: 55679
