@@ -1,0 +1,21 @@
+#
+apiVersion: v1
+kind: Pod
+metadata:
+  name: jaeger
+  labels:
+    app.podman.io/name: jaeger
+spec:
+  containers:
+    - name: jaeger
+      image: docker.io/jaegertracing/all-in-one
+      ports:
+        - name: otel-grpc
+          containerPort: 4317
+          hostPort: 4317
+        - name: otel-http
+          containerPort: 4318
+          hostPort: 4318
+        - name: http
+          containerPort: 16686
+          hostPort: 16686
