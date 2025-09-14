@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: otel-lgtm
+  labels:
+    app.podman.io/name: otel-lgtm
+spec:
+  containers:
+    - name: otel-lgtm
+      image: docker.io/grafana/otel-lgtm
+      ports:
+        - name: otel-grpc
+          containerPort: 4317
+          hostPort: 4317
+        - name: otel-http
+          containerPort: 4318
+          hostPort: 4318
+        - name: http
+          containerPort: 3000
+          hostPort: 3000
