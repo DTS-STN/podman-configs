@@ -17,4 +17,4 @@ spec:
           hostPort: 4318
         - name: http
           containerPort: 3000
-          hostPort: 3000
+          hostPort: 8888
