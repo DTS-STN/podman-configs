@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: opensearch
+  labels:
+    app.podman.io/name: opensearch
+stringData:
+  OPENSEARCH_INITIAL_ADMIN_PASSWORD: PW!-01b56559-a3f5-4842-8fa9-9b717e5799a7
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: opensearch
+  labels:
+    app.podman.io/name: opensearch
+spec:
+  containers:
+    - name: opensearch
+      image: docker.io/opensearchproject/opensearch:3.4.0
+      env:
+        - name: discovery.type
+          value: single-node
+        - name: bootstrap.memory_lock
+          value: 'true'
+        - name: cluster.name
+          value: opensearch-cluster
+        - name: OPENSEARCH_JAVA_OPTS
+          value: -Xms512m -Xmx512m
+      envFrom:
+        - secretRef:
+            name: opensearch
+      ports:
+        - containerPort: 9200
+          hostPort: 9200
+        - containerPort: 9300
+          hostPort: 9300
+        - containerPort: 9600
+          hostPort: 9600
+      resources:
+        limits:
+          memory: 2G
+      volumeMounts:
+        - name: opensearch
+          mountPath: /usr/share/opensearch/data
+  volumes:
+    - name: opensearch
+      persistentVolumeClaim:
+        claimName: opensearch
