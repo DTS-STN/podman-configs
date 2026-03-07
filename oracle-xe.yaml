@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: oracle-xe
+  labels:
+    app.podman.io/name: oracle-xe
+spec:
+  accessModes:
+    - ReadWriteOnce
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: oracle-xe
+  labels:
+    app.podman.io/name: oracle-xe
+stringData:
+  APP_PWD: password
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oracle-xe
+  labels:
+    app.podman.io/name: oracle-xe
+data:
+  00_init.sh: |
+    #!/bin/bash
+
+    # We connect using local OS authentication (/ as sysdba) so we don't
+    # need to pass the system password here.
+    sqlplus -s / as sysdba << EOF
+
+    --
+    -- Switch to the default Pluggable Database
+    --
+    ALTER SESSION SET CONTAINER = XEPDB1;
+    ALTER PROFILE DEFAULT LIMIT PASSWORD_VERIFY_FUNCTION NULL;
+
+    --
+    -- 1. Create and start the app service alias
+    --
+    DECLARE
+      v_svc_count INTEGER;
+    BEGIN
+      SELECT COUNT(*) INTO v_svc_count FROM dba_services WHERE name = 'app';
+      IF v_svc_count = 0 THEN
+        DBMS_SERVICE.CREATE_SERVICE('app', 'app');
+      END IF;
+      DBMS_SERVICE.START_SERVICE('app');
+    END;
+    /
+
+    --
+    -- 2. Create the user using the environment variable injected from the Secret
+    --
+    DECLARE
+      v_user_exists INTEGER;
+    BEGIN
+      SELECT COUNT(*) INTO v_user_exists FROM dba_users WHERE username = 'app';
+      IF v_user_exists = 0 THEN
+        EXECUTE IMMEDIATE 'CREATE USER app IDENTIFIED BY "${APP_PWD}"';
+        EXECUTE IMMEDIATE 'GRANT CONNECT, RESOURCE, UNLIMITED TABLESPACE TO app';
+      END IF;
+    END;
+    /
+
+    EXIT;
+    EOF
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oracle-xe
+  labels:
+    app.podman.io/name: oracle-xe
+spec:
+  initContainers:
+    - image: docker.io/library/busybox
+      command: [sh, -c, chown 54321:54321 /opt/oracle/oradata]
+      volumeMounts:
+        - name: oracle-xe
+          mountPath: /opt/oracle/oradata
+  containers:
+    - name: oracle-xe
+      image: container-registry.oracle.com/database/express
+      ports:
+        - containerPort: 1521
+          hostPort: 1521
+      envFrom:
+        - secretRef:
+            name: oracle-xe
+      volumeMounts:
+        - name: init-scripts
+          mountPath: /opt/oracle/scripts/startup
+        - name: oracle-xe
+          mountPath: /opt/oracle/oradata
+  volumes:
+    - name: init-scripts
+      configMap:
+        name: oracle-xe
+    - name: oracle-xe
+      persistentVolumeClaim:
+        claimName: oracle-xe
