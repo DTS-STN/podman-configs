@@ -81,6 +81,7 @@ metadata:
   labels:
     app.podman.io/name: oracle-xe
 spec:
+  hostname: oracle-xe
   initContainers:
     - image: docker.io/library/busybox
       command: [sh, -c, chown 54321:54321 /opt/oracle/oradata]
@@ -101,6 +102,8 @@ spec:
           mountPath: /opt/oracle/scripts/startup
         - name: oracle-xe
           mountPath: /opt/oracle/oradata
+        - name: dshm
+          mountPath: /dev/shm
   volumes:
     - name: init-scripts
       configMap:
@@ -108,3 +111,6 @@ spec:
     - name: oracle-xe
       persistentVolumeClaim:
         claimName: oracle-xe
+    - name: dshm
+      emptyDir:
+        medium: Memory
