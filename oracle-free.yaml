@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: oracle-free
+  labels:
+    app.podman.io/name: oracle-free
+spec:
+  accessModes:
+    - ReadWriteOnce
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: oracle-free
+  labels:
+    app.podman.io/name: oracle-free
+stringData:
+  APP_PWD: password
+  ORACLE_PWD: BF1vHsvt5zDEt0ta
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oracle-free
+  labels:
+    app.podman.io/name: oracle-free
+data:
+  00_init.sh: |
+    #!/bin/bash
+
+    # We connect using local OS authentication (/ as sysdba) so we don't
+    # need to pass the system password here.
+    sqlplus -s / as sysdba <<- EOF
+
+    --
+    -- Switch to the default Pluggable Database
+    --
+    ALTER SESSION SET CONTAINER = FREEPDB1;
+    ALTER PROFILE DEFAULT LIMIT PASSWORD_VERIFY_FUNCTION NULL;
+
+    --
+    -- 1. Create and start the app service alias
+    --
+    DECLARE
+      v_svc_count INTEGER;
+    BEGIN
+      SELECT COUNT(*) INTO v_svc_count FROM dba_services WHERE name = 'app';
+      IF v_svc_count = 0 THEN
+        DBMS_SERVICE.CREATE_SERVICE('app', 'app');
+      END IF;
+      DBMS_SERVICE.START_SERVICE('app');
+    END;
+    /
+
+    --
+    -- 2. Create the user using the environment variable injected from the Secret
+    --
+    DECLARE
+      v_user_exists INTEGER;
+    BEGIN
+      SELECT COUNT(*) INTO v_user_exists FROM dba_users WHERE username = 'APP';
+      IF v_user_exists = 0 THEN
+        EXECUTE IMMEDIATE 'CREATE USER app IDENTIFIED BY "${APP_PWD}"';
+        EXECUTE IMMEDIATE 'GRANT CONNECT, RESOURCE, UNLIMITED TABLESPACE TO app';
+      END IF;
+    END;
+    /
+
+    EXIT;
+    EOF
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: oracle-free
+  labels:
+    app.podman.io/name: oracle-free
+spec:
+  hostname: oracle-free
+  initContainers:
+    - image: docker.io/library/busybox
+      command:
+        - sh
+        - -c
+        - |
+          mkdir /opt/oracle/oradata/dbs
+          chown 54321:54321 /opt/oracle/oradata
+      volumeMounts:
+        - name: oracle-free
+          mountPath: /opt/oracle/oradata
+  containers:
+    - name: oracle-free
+      image: container-registry.oracle.com/database/free
+      ports:
+        - containerPort: 1521
+          hostPort: 1521
+      envFrom:
+        - secretRef:
+            name: oracle-free
+      volumeMounts:
+        - name: init-scripts
+          mountPath: /opt/oracle/scripts/startup
+        - name: oracle-free
+          mountPath: /opt/oracle/oradata
+        - name: dshm
+          mountPath: /dev/shm
+  volumes:
+    - name: init-scripts
+      configMap:
+        name: oracle-free
+    - name: oracle-free
+      persistentVolumeClaim:
+        claimName: oracle-free
+    - name: dshm
+      emptyDir:
+        medium: Memory
