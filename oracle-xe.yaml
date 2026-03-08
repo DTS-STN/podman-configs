@@ -18,6 +18,7 @@ metadata:
     app.podman.io/name: oracle-xe
 stringData:
   APP_PWD: password
+  ORACLE_PWD: BF1vHsvt5zDEt0ta
 
 ---
 
