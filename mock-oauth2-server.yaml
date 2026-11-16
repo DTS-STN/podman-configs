@@ -1,0 +1,227 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-oauth2-server-login
+data:
+  config.json: |
+    {
+      "interactiveLogin": true,
+      "loginPagePath": "/etc/mock-auth/login.html",
+      "staticAssetsPath": "/etc/mock-auth",
+      "httpServer": "NettyWrapper",
+      "tokenCallbacks": [
+        {
+          "issuerId": "default",
+          "tokenExpiry": 3600,
+          "requestMappings": [
+            {
+              "requestParam": "subject",
+              "match": "mock-administrator",
+              "claims": {
+                "sub": "01a1b112-6377-7187-8e9c-a19b90f29256",
+                "aud": ["${clientId}"],
+                "username": "mock-administrator",
+                "preferred_username": "mock-administrator",
+                "email": "administrator@example.com",
+                "given_name": "Test",
+                "family_name": "Administrator",
+                "name": "Test Administrator",
+                "surname": "Administrator",
+                "givenname": "Test",
+                "roles": ["Administrator"]
+              }
+            },
+            {
+              "requestParam": "subject",
+              "match": "mock-editor",
+              "claims": {
+                "sub": "01a1b112-6377-7187-8e9c-a19c47eb2ba9",
+                "aud": ["${clientId}"],
+                "username": "mock-editor",
+                "preferred_username": "mock-editor",
+                "email": "editor@example.com",
+                "given_name": "Test",
+                "family_name": "Editor",
+                "name": "Test Editor",
+                "surname": "Editor",
+                "givenname": "Test",
+                "roles": ["Editor"]
+              }
+            },
+            {
+              "requestParam": "subject",
+              "match": "mock-manager",
+              "claims": {
+                "sub": "01a1b112-6377-7187-8e9c-a19de971a7c6",
+                "aud": ["${clientId}"],
+                "username": "mock-manager",
+                "preferred_username": "mock-manager",
+                "email": "manager@example.com",
+                "given_name": "Test",
+                "family_name": "Manager",
+                "name": "Test Manager",
+                "surname": "Manager",
+                "givenname": "Test",
+                "roles": ["Manager"]
+              }
+            },
+            {
+              "requestParam": "subject",
+              "match": "mock-noaccess",
+              "claims": {
+                "sub": "01a1b112-6377-7187-8e9c-a19eef3833f0",
+                "aud": ["${clientId}"],
+                "username": "mock-noaccess",
+                "preferred_username": "mock-noaccess",
+                "email": "noaccess@example.com",
+                "given_name": "Test",
+                "family_name": "NoAccess",
+                "name": "Test NoAccess",
+                "surname": "NoAccess",
+                "givenname": "Test",
+                "roles": ["NoAccess"]
+              }
+            },
+            {
+              "requestParam": "subject",
+              "match": "mock-viewer",
+              "claims": {
+                "sub": "01a1b112-6377-7187-8e9c-a19f1951e445",
+                "aud": ["${clientId}"],
+                "username": "mock-viewer",
+                "preferred_username": "mock-viewer",
+                "email": "viewer@example.com",
+                "given_name": "Test",
+                "family_name": "Viewer",
+                "name": "Test Viewer",
+                "surname": "Viewer",
+                "givenname": "Test",
+                "roles": ["Viewer"]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  login.html: |
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Mock sign-in</title>
+      <style>
+        body { margin: 0; padding: 2rem 1rem; background: #f3f5f7; color: #17212b; font: 1rem/1.5 system-ui, sans-serif; }
+        main { max-width: 38rem; margin: auto; padding: 2rem; background: white; border-radius: .75rem; }
+        h1 { margin-top: 0; }
+        .accounts { display: grid; gap: .75rem; }
+        button, input, textarea { box-sizing: border-box; font: inherit; }
+        button { padding: .75rem 1rem; border: 1px solid #245b8a; border-radius: .35rem; background: #245b8a; color: white; cursor: pointer; }
+        .accounts button { width: 100%; text-align: left; }
+        .accounts small { display: block; }
+        input, textarea { display: block; width: 100%; margin: .35rem 0 1rem; padding: .6rem; border: 1px solid #657687; border-radius: .25rem; }
+        :focus-visible { outline: 3px solid #9a5700; outline-offset: 3px; }
+        section { margin-top: 1.5rem; }
+        h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+        .notice { color: #526170; }
+      </style>
+    </head>
+    <body>
+      <main>
+        <h1>Mock sign-in</h1>
+        <p>Choose a test account. No password is required.</p>
+        <p id="accounts-status" role="status">Loading accounts...</p>
+        <noscript>Enable JavaScript to list predefined accounts, or enter a username below.</noscript>
+        <form method="post" class="accounts" aria-label="Predefined accounts"></form>
+        <section aria-labelledby="other-user-heading">
+          <h2 id="other-user-heading">Use another username or additional claims</h2>
+          <form method="post">
+            <label for="username">Username / subject ID</label>
+            <input id="username" name="username" required autocomplete="off" aria-describedby="subject-help">
+            <p id="subject-help" class="notice">For a custom account, this value becomes sub. Use a unique, stable ID (such as a fixed UUID), and keep the readable name in preferred_username below. Predefined usernames use their configured subjects instead.</p>
+            <label for="claims">Additional claims (optional JSON object)</label>
+            <textarea id="claims" name="claims" rows="12" aria-describedby="claims-help">{
+      "aud": ["replace-with-client-id"],
+      "preferred_username": "mock-custom",
+      "email": "custom@example.com",
+      "given_name": "Mock",
+      "family_name": "Custom",
+      "name": "Mock Custom",
+      "roles": ["Viewer"]
+    }</textarea>
+            <p id="claims-help" class="notice">Replace the sample profile and role values. Leave sub out so the subject ID comes from the field above. The audience defaults to the request's client_id. Roles: Administrator, Editor, Manager, NoAccess, Viewer.</p>
+            <p class="notice">Other usernames have no predefined roles. Additional claims cannot override predefined mappings.</p>
+            <button type="submit">Sign in</button>
+          </form>
+        </section>
+        <p class="notice">Local development only. This is not a production identity provider.</p>
+      </main>
+      <script>
+        const clientId = new URLSearchParams(location.search).get("client_id");
+        if (clientId) {
+          const textarea = document.getElementById("claims");
+          const claims = JSON.parse(textarea.value);
+          claims.aud = [clientId];
+          textarea.value = JSON.stringify(claims, null, 2);
+        }
+        async function loadAccounts() {
+          const status = document.getElementById("accounts-status");
+          try {
+            const response = await fetch("/static/config.json", { cache: "no-store" });
+            if (!response.ok) throw new Error(`Account configuration request failed (${response.status})`);
+            const config = await response.json();
+            const issuerId = location.pathname.split("/")[1];
+            const callback = config.tokenCallbacks.find(item => item.issuerId === issuerId);
+            if (!callback) throw new Error(`No account configuration for issuer ${issuerId}`);
+            const accounts = document.querySelector(".accounts");
+            for (const mapping of callback.requestMappings) {
+              if (mapping.requestParam !== "subject" || mapping.match !== mapping.claims.username) continue;
+              const button = document.createElement("button");
+              button.type = "submit";
+              button.name = "username";
+              button.value = mapping.match;
+              button.textContent = mapping.match;
+              const email = document.createElement("small");
+              email.textContent = mapping.claims.email;
+              button.append(email);
+              const roles = document.createElement("small");
+              roles.textContent = `Roles: ${mapping.claims.roles.join(", ")}`;
+              button.append(roles);
+              accounts.append(button);
+            }
+            status.textContent = accounts.children.length ? "" : "No predefined accounts configured.";
+          } catch (error) {
+            status.setAttribute("role", "alert");
+            status.textContent = `Unable to load predefined accounts: ${error.message}. You can still enter a username below.`;
+            console.error(error);
+          }
+        }
+        loadAccounts();
+      </script>
+    </body>
+    </html>
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mock-oauth2-server
+  labels:
+    app.podman.io/name: mock-oauth2-server
+spec:
+  containers:
+    - name: mock-oauth2-server
+      image: ghcr.io/navikt/mock-oauth2-server:6.1.4
+      ports:
+        - containerPort: 8080
+          hostPort: 9400
+      env:
+        - name: JSON_CONFIG_PATH
+          value: /etc/mock-auth/config.json
+      volumeMounts:
+        - name: login-page
+          mountPath: /etc/mock-auth
+          readOnly: true
+  volumes:
+    - name: login-page
+      configMap:
+        name: mock-oauth2-server-login
